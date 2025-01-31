@@ -13,34 +13,54 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from imblearn.over_sampling import SMOTE
 import matplotlib.pyplot as plt
 
-def replaceTarget(value): return 1 if 1 <= value <= 3 else 0
+def replaceTarget(value):
+    return 1 if 1 <= value <= 3 else 0
 
 def clean_data(data):
+    # clean target columns
     filtered_data = data
     conditions = (
         (~data['GH_010'].isin([99, 6])) &
         (~data['GH_020'].isin([99, 6]))
     )
-    filtered_data = data[conditions].copy()
-    filtered_data.loc[:, 'GH_010'] = filtered_data['GH_010'].apply(replaceTarget)
-    filtered_data.loc[:, 'GH_020'] = filtered_data['GH_020'].apply(replaceTarget)
+    filtered_data = data[conditions]
+    filtered_data['GH_010'] = filtered_data['GH_010'].apply(replaceTarget)
+    filtered_data['GH_020'] = filtered_data['GH_020'].apply(replaceTarget)
+
+
+    # print(filtered_data['PH_010'].mode())
+    filtered_data['PH_010'] = filtered_data['PH_010'].replace(99, 5)
+    # print(filtered_data['ALC_040'].mode())
+    filtered_data['ALC_040'] = filtered_data['ALC_040'].replace([99, 7], 96)
+    # print(filtered_data['CAN_010'].mode())
+    # print(filtered_data['SS_030'].mode())
+    filtered_data['SS_030'] = filtered_data['SS_030'].replace(99, 96)
+    # print(filtered_data['ELC_026a'].mode())
+    # print(filtered_data['ELC_026c'].mode())
+
+    # clean other columns
+
     return filtered_data
+
+
+
+
 
 data = pd.read_csv('Data.csv')
 filtered_data = clean_data(data)
 
-filtered_data.loc[:, 'target_column'] = (
-    filtered_data['GH_020'] & filtered_data['GH_010']
+filtered_data['target_column'] = (
+        filtered_data['GH_020'] | filtered_data['GH_010']
 )
 
 selected_vars = [
-    'PROVID', 'GRADE', 'DVURBAN', 'DVDESCRIBE', 'DVORIENT',  # Demographics
-    'BEH_010', 'PH_010',  # Behavioral
-    'ALC_040', 'ALC_010',  # Alcohol
+    'PROVID', 'GRADE', 'DVURBAN', 'DVORIENT',  # Demographics
+    'PH_010',  # Behavioral
+    'ALC_040',  # Alcohol
     'CAN_010',  # Cannabis
-    'SS_010', 'SS_030', # Smoking
+    'SS_030',   # Smoking
+    'ELC_026a', 'ELC_026c'  # Other features
 ]
-
 X = filtered_data[selected_vars]
 y = filtered_data['target_column']
 
